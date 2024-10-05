@@ -1,4 +1,4 @@
-
+<pre>
  _______   ________  ___  ___  ___  ________   ________     ___    ___
 |\  ___ \ |\   __  \|\  \|\  \|\  \|\   ___  \|\   __  \   |\  \  /  /|
 \ \   __/|\ \  \|\  \ \  \\\  \ \  \ \  \\ \  \ \  \|\  \  \ \  \/  / /
@@ -25,3 +25,4 @@ If the wrong password is supplied, the result will be garbage.
 This is neither fast nor efficient and takes a long time for large files.
 
 It is probably also not very secure so you should not trust it with state secrets.
+</pre>
