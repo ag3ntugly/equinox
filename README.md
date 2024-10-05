@@ -11,7 +11,7 @@
 
 Equinox - a terrible file encryption utility by ag3ntugly
 
-Usage: equinox.py \<password\> \<path_to_file\>
+Usage: equinox.py &lt;password&gt; &lt;path_to_file&gt;
 
 Password can be any length, anything you can type, the longer the better.
 File can be any old file you have need to obscure from eavesdroppers.
