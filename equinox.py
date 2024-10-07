@@ -52,12 +52,12 @@ def write_output_file(output_file, cypher_bytes):
 
 def generate_key_stream(password, input_filesize):
     keystream = ""
-    #create an SHA-256 hash of the input string
-    hash = hashlib.sha256(password.encode())
+    #create a Blake2b of the input string
+    hash = hashlib.blake2b(password.encode())
     keystream = hash.digest()
     #use the last 32 bytes of the initial hash as the seed for the next hash, add it to the first hash, and repeat untill it's as big as in the input file
     while len(keystream) <= input_filesize:
-        next_hash = hashlib.sha256(keystream[-32:])
+        next_hash = hashlib.blake2b(keystream[-32:])
         keystream = keystream + next_hash.digest()
     return keystream[:input_filesize]
 
