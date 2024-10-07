@@ -6,6 +6,7 @@ import platform
 import sys
 import argparse
 from datetime import datetime
+import math
 
 
 #record the time, for later...
@@ -55,7 +56,7 @@ It is probably not very secure so you should not trust it with state secrets.
 
 def open_input_file(input_file):
     #open the original input_file for reading as bytes and return said bytes
-    print(f"{C}[{M}-{C}] Reading input file{RS}")
+    
     try:
         with open(input_file, 'rb',) as ifile:
             file_bytes = ifile.read()
@@ -87,12 +88,12 @@ def generate_key(password, input_filesize):
         progress_percent = round((len(key) / input_filesize) * 100)
         progress_blocks = round(progress_percent / 5)
         progress_bar = ("■" * progress_blocks) + (" " * (20 - progress_blocks))
-        key_size = convert_bytes(len(key))
-        key_size_padded = key_size + (" " * (10 - len(key_size)))
         key_time = (datetime.now() - key_start_time)
         seconds = round(key_time.total_seconds())
         print(f"{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}>{M} {M}{str(progress_percent).zfill(2)}{C}% ({M}{seconds} {C}seconds) {RS}", end="\r")
-    return key[:input_filesize]
+    total_keytime = datetime.now() - key_start_time
+    total_keytime_seconds = round(total_keytime.total_seconds())    
+    return key[:input_filesize], total_keytime_seconds
 
 def convert_bytes(size):
     #i stole this from stack overflow ngl
@@ -129,8 +130,10 @@ if __name__ == "__main__":
     
     #this is where actually do the thing
     print(f"{C}[{M}-{C}] Beginning file encryption/decryption{RS}")
+    print(f"{C}[{M}-{C}] Reading input file{RS}")
     input_bytes = open_input_file(input_file)
-    key_bytes = generate_key(password, len(input_bytes))
+    print(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}")
+    key_bytes, key_time = generate_key(password, len(input_bytes))
     print(f"{C}[{M}-{C}] Key Generated{RS}")    
     print(f"{C}[{M}-{C}] Encrypting input file{RS}")
     cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes))
@@ -143,8 +146,8 @@ if __name__ == "__main__":
 
     #lets print some status usage_texts right here 
     print(f"{C}[{M}-{C}] Encryption/Decryption completed in: {M}{total_seconds} {C}seconds.{RS}")
-    print(f"{C}[{M}-{C}]    Key bytes: {C}{convert_bytes(len(key_bytes))}{RS}")
-    print(f"{C}[{M}-{C}]  Input bytes: {C}{convert_bytes(len(input_bytes))} {M}-{C} Input filename is {C}{input_file}{RS}")
-    print(f"{C}[{M}-{C}] Cipher bytes: {C}{convert_bytes(len(cipher_bytes))} {M}-{C} Output filename is: {C}{output_file}{RS} ")
+    print(f"{C}[{M}-{C}]    Key bytes: {C}{convert_bytes(len(key_bytes))} {M}-{C} generated in: {M}{key_time} {C}seconds.{RS}")
+    print(f"{C}[{M}-{C}]  Input bytes: {C}{convert_bytes(len(input_bytes))} {M}-{C} Input file is: {M}{input_file}{RS}")
+    print(f"{C}[{M}-{C}] Cipher bytes: {C}{convert_bytes(len(cipher_bytes))} {M}-{C} Output file is: {M}{output_file}{RS} ")
 
     
