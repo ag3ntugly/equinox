@@ -80,10 +80,14 @@ if __name__ == "__main__":
         output_file = input_file[:-4]
     else:
         output_file = input_file + ".eqx"
-    print("Beginning file encryption/decryption. Please wait...")
+    print("[-] Beginning file encryption/decryption...")
+    print("[-] Reading input file...")
     input_bytes = open_input_file(input_file)
+    print("[-] Generating key...")
     key_bytes = generate_key_stream(password, len(input_bytes))    
+    print("[-] Encrypting input file...")
     cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes))
+    print("[-] Writing output file...")
     write_output_file(output_file, cipher_bytes)
 
     #lets have some status messages right here 
