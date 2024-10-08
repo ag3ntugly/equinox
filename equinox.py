@@ -7,6 +7,8 @@ import sys
 import argparse
 from datetime import datetime
 import math
+from math import trunc
+import time
 
 
 #record the time, for later...
@@ -54,7 +56,10 @@ This is {M}slow{C} and {M}iefficient{C} so it takes a long time for large files!
 It is probably not very secure so you should not trust it with state secrets.
 
 '''
-
+def m_and_s (time):
+    #this is just a thing to turn a time object into minutes and seconds
+    minutes_and_seconds = f"{str(trunc(time.seconds / 60))}:{str((trunc(time.seconds % 60))).zfill(2)}"
+    return minutes_and_seconds
 
 def open_input_file(input_file):
     #open the original input_file for reading as bytes and return said bytes
@@ -80,22 +85,28 @@ def write_output_file(output_file, output_bytes):
 
 def generate_key(password, input_filesize):
     key_start_time = datetime.now()
-    #create a Blake2b hash of the input string
+    count = 0
+    #create a blake2b hash of the input string
     hash = hashlib.blake2b(password.encode())
     key = hash.digest()
-    #use the last 32 bytes of the initial hash as the seed for the next hash, add it to the first hash, and repeat untill it's as big as in the input file
+    #use the last 32 bytes of the initial hash as the seed for the next hash, add that hash to the first hash, and repeat untill it's as big as in the input file
     while len(key) <= input_filesize:
         next_hash = hashlib.blake2b(key[-32:])
         key = key + next_hash.digest()
-        progress_percent = round((len(key) / input_filesize) * 100)
-        progress_blocks = round(progress_percent / 5)
-        progress_bar = ("■" * progress_blocks) + (" " * (20 - progress_blocks))
-        key_time = (datetime.now() - key_start_time)
-        seconds = round(key_time.total_seconds())
-        print(f"{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}>{M} {M}{str(progress_percent).zfill(2)}{C}% ({M}{seconds} {C}seconds) {RS}", end="\r")
+        count += 1
+        if ((count % 1000) == 1):
+            progress_percent = ((len(key) / input_filesize) * 100)
+            progress_blocks = round(progress_percent / 2)
+            progress_bar = ("■" * progress_blocks) + (" " * (50 - progress_blocks))
+            keytime_elapsed = (datetime.now() - key_start_time)
+            keytime_total = keytime_elapsed / (len(key) / input_filesize)
+            keytime_remaining = keytime_total - keytime_elapsed
+            bytes_per_second = round((count * 64) / (keytime_elapsed.seconds + .1))
+            hashes_per_second = round(count / (keytime_elapsed.seconds + .1))
+            print(f"\033[F{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}> {M}{round(progress_percent,1)}{C}% {convert_bytes(len(key))}     \n{C}[{M}-{C}] ({M}{m_and_s(keytime_elapsed)} {C}elapsed / {M}{m_and_s(keytime_total)}{C} total / {M}{m_and_s(keytime_remaining)} {C}remaining) : {M}{convert_bytes(bytes_per_second)}{C}/s : {M}{hashes_per_second} H{C}/S   {RS}" ,end="")
+        
     total_keytime = datetime.now() - key_start_time
-    total_keytime_seconds = round(total_keytime.total_seconds())    
-    return key[:input_filesize], total_keytime_seconds
+    return key[:input_filesize], total_keytime
 
 def convert_bytes(size):
     #i stole this from stack overflow ngl
@@ -134,7 +145,7 @@ if __name__ == "__main__":
     print(f"{C}[{M}-{C}] Beginning file encryption/decryption{RS}")
     print(f"{C}[{M}-{C}] Reading input file{RS}")
     input_bytes = open_input_file(input_file)
-    print(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}")
+    print(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}\n")
     key_bytes, key_time = generate_key(password, len(input_bytes))
     print(f"{C}[{M}-{C}] Key Generated{RS}")    
     print(f"{C}[{M}-{C}] Encrypting input file{RS}")
@@ -142,13 +153,13 @@ if __name__ == "__main__":
     print(f"{C}[{M}-{C}] Writing output file{RS}")
     write_output_file(output_file, cipher_bytes)
 
-    #calculate total run time and round to nearest second, see i told you we'd need it later
+    #calculate total run time see i told you we'd need it later
     total_time = datetime.now() - total_start_time
-    total_seconds = round(total_time.total_seconds())
+    
 
     #lets print some status usage_texts right here 
-    print(f"{C}[{M}-{C}] Encryption/Decryption completed in: {M}{total_seconds} {C}seconds.{RS}")
-    print(f"{C}[{M}-{C}]    Key bytes: {C}{convert_bytes(len(key_bytes))} {M}-{C} generated in: {M}{key_time} {C}seconds.{RS}")
+    print(f"{C}[{M}-{C}] Encryption/Decryption completed in: {M}{m_and_s(total_time)}{C}.{RS}")
+    print(f"{C}[{M}-{C}]    Key bytes: {C}{convert_bytes(len(key_bytes))} {M}-{C} generated in: {M}{m_and_s(key_time)}{C}.{RS}")
     print(f"{C}[{M}-{C}]  Input bytes: {C}{convert_bytes(len(input_bytes))} {M}-{C} Input file is: {M}{input_file}{RS}")
     print(f"{C}[{M}-{C}] Cipher bytes: {C}{convert_bytes(len(cipher_bytes))} {M}-{C} Output file is: {M}{output_file}{RS} ")
 
