@@ -63,7 +63,6 @@ def m_and_s (time):
 
 def open_input_file(input_file):
     #open the original input_file for reading as bytes and return said bytes
-    
     try:
         with open(input_file, 'rb',) as ifile:
             file_bytes = ifile.read()
@@ -74,16 +73,20 @@ def open_input_file(input_file):
         print(f"{C}[{M}{R}!{C}] Input/Output Error{RS}")
         sys.exit()
     except Exception as e:
-        print(f"{C}[{M}{R}!{C}] An unexpected error has occuR: {R}{e}{RS}")
+        print(f"{C}[{M}{R}!{C}] An unexpected error has occured: {R}{e}{RS}")
         sys.exit()
     return file_bytes
 
 def write_output_file(output_file, output_bytes):
-    #open a file for writing as bytes and write said bytes
-    with open(output_file, 'wb') as ofile:
-        ofile.write(output_bytes)
+    #open output file for writing as bytes and write said bytes
+    try:
+        with open(output_file, 'wb') as ofile:
+            ofile.write(output_bytes)
+    except Exception as e:
+        print(f"{C}[{M}{R}!{C}] An unexpected error has occured: {R}{e}{RS}")
 
 def generate_key(password, input_filesize):
+    #record the time, set counter to 0
     key_start_time = datetime.now()
     count = 0
     #create a blake2b hash of the input string
@@ -94,7 +97,8 @@ def generate_key(password, input_filesize):
         next_hash = hashlib.blake2b(key[-32:])
         key = key + next_hash.digest()
         count += 1
-        if ((count % 1000) == 1):
+        #every hundred iterations, update the progress bar and status messages
+        if ((count % 100) == 1):
             progress_percent = ((len(key) / input_filesize) * 100)
             progress_blocks = round(progress_percent / 2)
             progress_bar = ("■" * progress_blocks) + (" " * (50 - progress_blocks))
@@ -104,8 +108,9 @@ def generate_key(password, input_filesize):
             bytes_per_second = round((count * 64) / (keytime_elapsed.seconds + .1))
             hashes_per_second = round(count / (keytime_elapsed.seconds + .1))
             print(f"\033[F{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}> {M}{round(progress_percent,1)}{C}% {convert_bytes(len(key))}     \n{C}[{M}-{C}] ({M}{m_and_s(keytime_elapsed)} {C}elapsed / {M}{m_and_s(keytime_total)}{C} total / {M}{m_and_s(keytime_remaining)} {C}remaining) : {M}{convert_bytes(bytes_per_second)}{C}/s : {M}{hashes_per_second} H{C}/S   {RS}" ,end="")
-        
+    #calculate the key generation time    
     total_keytime = datetime.now() - key_start_time
+    #return the key trimmed to the exact length
     return key[:input_filesize], total_keytime
 
 def convert_bytes(size):
@@ -114,29 +119,29 @@ def convert_bytes(size):
         if size < 1024.0:
             return "%3.1f %s" % (size, x)
         size /= 1024.0
-
     return size
 
 if __name__ == "__main__":
-    
+
     #parse the arguments
     parser = argparse.ArgumentParser(usage=usage_text,description=help_text,epilog=f"{RS}",formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-p", "--password", type=str, required=True)
     parser.add_argument("-i", "--input", type=str, required=True)
     parser.add_argument("-o", "--output", type=str, required=False)
     args = parser.parse_args()
-    
-    
+
     #set variables from args
     password = args.password
     input_file = args.input
 
-    #check if it has our extension, and if so strip it and set output file name to that.
-    if ".eqx" in input_file:
-        output_file = input_file[:-4]
-    #then check if a custom output filename was specified, in which case fuck that previous nonsense and set it to what they asked for, come what may
-    elif args.output:
+    #if the user has specified an output file name, set it to that
+    if args.output:
         output_file = args.output
+
+    #if not, we check it for our magic extension indicating an already ecrypted file, and strip it off
+    elif ".eqx" in input_file:
+        output_file = input_file[:-4]
+
     #otherwise set it to the input file name with .eqx appended to it
     else:
         output_file = input_file + ".eqx"
@@ -153,14 +158,13 @@ if __name__ == "__main__":
     print(f"{C}[{M}-{C}] Writing output file{RS}")
     write_output_file(output_file, cipher_bytes)
 
-    #calculate total run time see i told you we'd need it later
+    #calculate total run time, see i told you we'd need it later
     total_time = datetime.now() - total_start_time
     
-
-    #lets print some status usage_texts right here 
+    #lets print some status messages right here then exit
     print(f"{C}[{M}-{C}] Encryption/Decryption completed in: {M}{m_and_s(total_time)}{C}.{RS}")
     print(f"{C}[{M}-{C}]    Key bytes: {C}{convert_bytes(len(key_bytes))} {M}-{C} generated in: {M}{m_and_s(key_time)}{C}.{RS}")
     print(f"{C}[{M}-{C}]  Input bytes: {C}{convert_bytes(len(input_bytes))} {M}-{C} Input file is: {M}{input_file}{RS}")
     print(f"{C}[{M}-{C}] Cipher bytes: {C}{convert_bytes(len(cipher_bytes))} {M}-{C} Output file is: {M}{output_file}{RS} ")
-
+    
     
