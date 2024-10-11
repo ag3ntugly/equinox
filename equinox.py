@@ -31,13 +31,12 @@ help_text = f'''
 
 {C} _______   ________  ___  ___  ___  ________   ________     ___    ___ 
 {M}|{C}\\  ___ \\ {M}|{C}\\   __  \\{M}|{C}\\  \\{M}|{C}\\  \\{M}|{C}\\  \\{M}|{C}\\   ___  \\{M}|{C}\\   __  \\   {M}|{C}\\  \\  /  /{M}|{C}
-{M}\\ {C}\\   __/|{M}\\{C} \\  \\{M}|{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}|{C}\\  \\  \\ \\  \\/  / /
-{M} \\ {C}\\  \\_|/_{M}\\{C} \\  \\{M}\\{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}\\{C}\\  \\  \\ \\    / / 
-{M}  \\ {C}\\  \\_|\\ {M}\\{C} \\  \\{M}\\{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}\\{C}\\  \\  /     \\/  
+{M}\\ {C}\\   __/|{M}\\{C} \\  \\{M}|{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}|{C}\\  \\  {M}\\{C} \\  \\/  / {M}/
+{M} \\ {C}\\  \\_|/_{M}\\{C} \\  \\{M}\\{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}\\{C}\\  \\  {M}\\{C} \\    / {M}/ 
+{M}  \\ {C}\\  \\_|\\ {M}\\{C} \\  \\{M}\\{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}\\{C}\\  \\  /     \\{M}/  
 {M}   \\ {C}\\_______{M}\\{C} \\_____  \\ \\_______\\ \\__\\ \\__\\\\ \\__\\ \\_______\\/  /\\   \\  
 {M}    \\{M}|_______|\\|___| {C}\\__\\{M}|_______|\\|__|\\|__| \\|__|\\|_______{C}/__/ {M}/{C}\\ __\\ 
                     {M}\\|__|                                  |__|/ \\|__| 
-                                                                       
                                                                        
       Equinox{C} a terrible file encryption utility by {G}ag3ntugly
      {M}Password{C} can be any length, whatever you want, the {M}longer{C} the {M}better{C}.
@@ -45,14 +44,12 @@ help_text = f'''
   {M}Output file{C} is a new file with {M}.eqx{C} appended to the name, created in the current
               directory unless an output file name/path is specified.
 
-The process for {M}decrypting{C} the file is identical to {M}encrypting{C}
+The process for {M}decrypting{C} the file is identical to {M}encrypting{C},
 just specify the {M}.eqx{C} file as the input, and a new file without the {M}.eqx{C} extension
 will be created in the current directory, unless an output file name/path is specified
 
 If the {M}wrong password{C} is supplied, the result will be {M}garbage{C}.
-
 This is {M}slow{C} and {M}iefficient{C} so it takes a long time for large files!
-
 It is probably not very secure so you should not trust it with state secrets.
 
 '''
