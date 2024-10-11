@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import hashlib
 import os
 import platform
