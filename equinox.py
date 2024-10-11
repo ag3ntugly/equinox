@@ -28,7 +28,6 @@ RS = "\033[0m"
 usage_text = f"{C}python equinox.py [-h/--help] -p/--password {M}PASSWORD{C} -i/--input {M}INPUT_FILE_PATH{C} [-o/--output {M}OUTPUT_FILE_PATH{C}]{RS}"
 
 help_text = f'''
-
 {C} _______   ________  ___  ___  ___  ________   ________     ___    ___ 
 {M}|{C}\\  ___ \\ {M}|{C}\\   __  \\{M}|{C}\\  \\{M}|{C}\\  \\{M}|{C}\\  \\{M}|{C}\\   ___  \\{M}|{C}\\   __  \\   {M}|{C}\\  \\  /  /{M}|{C}
 {M}\\ {C}\\   __/|{M}\\{C} \\  \\{M}|{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}|{C}\\  \\  {M}\\{C} \\  \\/  / {M}/
@@ -51,7 +50,6 @@ will be created in the current directory, unless an output file name/path is spe
 If the {M}wrong password{C} is supplied, the result will be {M}garbage{C}.
 This is {M}slow{C} and {M}iefficient{C} so it takes a long time for large files!
 It is probably not very secure so you should not trust it with state secrets.
-
 '''
 def m_and_s (time):
     #this is just a thing to turn a time object into minutes and seconds
