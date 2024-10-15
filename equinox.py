@@ -49,7 +49,6 @@ The process for {M}decrypting{C} the file is identical to {M}encrypting{C},
 just specify the {M}.eqx{C} file as the input, and a new file without the {M}.eqx{C} extension
 will be created in the current directory, unless an output file name/path is specified
 
-If the {M}wrong password{C} is supplied, the result will be {M}garbage{C}.
 This is {M}slow{C} and {M}iefficient{C} so it takes a long time for large files!
 It is probably not very secure so you should not trust it with state secrets.
 '''
