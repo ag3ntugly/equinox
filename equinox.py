@@ -14,6 +14,8 @@ import time
 #record the time, for later...
 total_start_time = datetime.now()
 
+check_value = bytes.fromhex("84c399b360db6ef2757f40655ae66ad5fd8569f5e88d226d2307a7f38594217e")
+
 #define some color codes so i dont have to remember this nonsense
 R = "\033[91m"
 G = "\033[92m"
@@ -88,7 +90,7 @@ def generate_key(password, input_filesize):
     hash = hashlib.blake2b(password.encode())
     key = hash.digest()
     #use the last 32 bytes of the initial hash as the seed for the next hash, add that hash to the first hash, and repeat untill it's as big as in the input file
-    while len(key) <= input_filesize:
+    while len(key) <= input_filesize + 32:
         next_hash = hashlib.blake2b(key[-32:])
         key = key + next_hash.digest()
         count += 1
@@ -106,7 +108,27 @@ def generate_key(password, input_filesize):
     #calculate the key generation time    
     total_keytime = datetime.now() - key_start_time
     #return the key trimmed to the exact length
-    return key[:input_filesize], total_keytime
+    return key, total_keytime
+
+def encrypt(input, key):
+    print(f"{C}[{M}-{C}] Encrypting input file{RS}")
+    input = input + check_value
+    key_trimmed = key[:len(input)]
+    cipher_bytes = bytearray(a ^ b for a, b in zip(input, key[:len(input)]))
+    return cipher_bytes
+
+def decrypt(input, key):    
+    print(f"{C}[{M}-{C}] Detected encrypted input file. {RS}")
+    print(f"{C}[{M}-{C}] Checking Password{RS}")
+    key_trimmed = key[:len(input)]
+    check_bytes = bytearray(a ^ b for a, b in zip(input[-32:], key_trimmed[-32:]))
+    if check_bytes != check_value:
+        print(f"{C}[{R}!{C}] Password invalid: please try again.{RS}")
+        exit()
+    else:
+        print(f"{C}[{M}-{C}] Password appears valid: decrypting input file{RS}")
+        cipher_bytes = bytearray(a ^ b for a, b in zip(input[:-32],key[:-32] ))
+    return cipher_bytes
 
 def convert_bytes(size):
     #i stole this from stack overflow ngl
@@ -147,12 +169,16 @@ if __name__ == "__main__":
     input_bytes = open_input_file(input_file)
     print(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}\n")
     key_bytes, key_time = generate_key(password, len(input_bytes))
-    print(f"{C}[{M}-{C}] Key Generated{RS}")    
-    print(f"{C}[{M}-{C}] Encrypting input file{RS}")
-    cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes))
-    print(f"{C}[{M}-{C}] Writing output file{RS}")
-    write_output_file(output_file, cipher_bytes)
+    print(f"\n{C}[{M}-{C}] Key Generated{RS}")
+    #determine if we're encrypting or decrypting and behave accordingly.    
+    if ".eqx" in input_file:
+        cipher_bytes = decrypt(input_bytes, key_bytes)
+    else:    
+        cipher_bytes = encrypt(input_bytes, key_bytes)
 
+    #write result to output file
+    print(f"{C}[{M}-{C}] Writing output to file{RS}")
+    write_output_file(output_file, cipher_bytes)    
     #calculate total run time, see i told you we'd need it later
     total_time = datetime.now() - total_start_time
     
