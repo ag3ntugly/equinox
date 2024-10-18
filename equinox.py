@@ -26,6 +26,11 @@ C = "\033[96m"
 W = "\033[97m"
 RS = "\033[0m"
 
+#cursor hiding tomfoolery
+CHIDE = "\033[?25l"
+CSHOW = "\033[?25h"
+
+
 #help messages and shit
 usage_text = f"{C}python equinox.py [-h/--help] -p/--password {M}PASSWORD{C} -i/--input {M}INPUT_FILE_PATH{C} [-o/--output {M}OUTPUT_FILE_PATH{C}]{RS}"
 
@@ -85,6 +90,8 @@ def generate_key(password, input_filesize):
     #record the time, set counter to 0
     key_start_time = datetime.now()
     count = 0
+    #hide the cursor so we dont see it whipping around every time the progress bar updates
+    print(CHIDE)
     #create a blake2b hash of the input string
     hash = hashlib.blake2b(password.encode())
     key = hash.digest()
@@ -94,7 +101,7 @@ def generate_key(password, input_filesize):
         key = key + next_hash.digest()
         count += 1
         #every hundred iterations, update the progress bar and status messages
-        if ((count % 100) == 1):
+        if ((count % 10) == 1):
             progress_percent = ((len(key) / input_filesize) * 100)
             progress_blocks = round(progress_percent / 2)
             progress_bar = ("■" * progress_blocks) + (" " * (50 - progress_blocks))
@@ -106,6 +113,8 @@ def generate_key(password, input_filesize):
             print(f"\033[F{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}> {M}{round(progress_percent,1)}{C}% {convert_bytes(len(key))}     \n{C}[{M}-{C}] ({M}{m_and_s(keytime_elapsed)} {C}elapsed / {M}{m_and_s(keytime_total)}{C} total / {M}{m_and_s(keytime_remaining)} {C}remaining) : {M}{convert_bytes(bytes_per_second)}{C}/s : {M}{hashes_per_second} H{C}/S   {RS}" ,end="")
     #calculate the key generation time    
     total_keytime = datetime.now() - key_start_time
+    #show the cursor again
+    print(CSHOW)
     #return the key trimmed to the exact length
     return key, total_keytime
 
@@ -166,9 +175,9 @@ if __name__ == "__main__":
     print(f"{C}[{M}-{C}] Beginning file encryption/decryption{RS}")
     print(f"{C}[{M}-{C}] Reading input file{RS}")
     input_bytes = open_input_file(input_file)
-    print(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}\n")
+    print(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}")
     key_bytes, key_time = generate_key(password, len(input_bytes))
-    print(f"\n{C}[{M}-{C}] Key Generated{RS}")
+    print(f"{C}[{M}-{C}] Key Generated{RS}")
     #determine if we're encrypting or decrypting and behave accordingly.    
     if ".eqx" in input_file:
         cipher_bytes = decrypt(input_bytes, key_bytes)
