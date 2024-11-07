@@ -6,17 +6,20 @@ import platform
 import sys
 import argparse
 from datetime import datetime
+from datetime import timedelta
+from datetime import time as dtime
+import time
 import math
 from math import trunc
-import time
 
 
 #record the time, for later...
 total_start_time = datetime.now()
 
+#a randomly generated 32 byte number to be used as a known plaintext to verify encryption/decrytpion
 magic_number = bytes.fromhex("84c399b360db6ef2757f40655ae66ad5fd8569f5e88d226d2307a7f38594217e")
 
-#define some color codes so i dont have to remember this nonsense
+#some color codes so i dont have to remember this nonsense
 R = "\033[91m"
 G = "\033[92m"
 Y = "\033[93m"
@@ -68,13 +71,13 @@ def open_input_file(input_file):
         with open(input_file, 'rb',) as ifile:
             file_bytes = ifile.read()
     except FileNotFoundError:
-        print(f"{C}[{M}{R}!{C}] File Not Found{RS}")
+        printslow(f"{C}[{M}{R}!{C}] File Not Found{RS}")
         sys.exit()
     except IOError:
-        print(f"{C}[{M}{R}!{C}] Input/Output Error{RS}")
+        printslow(f"{C}[{M}{R}!{C}] Input/Output Error{RS}")
         sys.exit()
     except Exception as e:
-        print(f"{C}[{M}{R}!{C}] An unexpected error has occured: {R}{e}{RS}")
+        printslow(f"{C}[{M}{R}!{C}] An unexpected error has occured: {R}{e}{RS}")
         sys.exit()
     return file_bytes
 
@@ -83,21 +86,21 @@ def inspect(input_bytes):
     sample = input_bytes[:64]
     if sample[:32] == magic_number:
         #if we find it, check the password by decrypting the last 32 bytes
-        print(f"{C}[{M}-{C}] Encrypted input detected. Checking Password{RS}")
+        printslow(f"{C}[{M}-{C}] Encrypted input detected. Checking Password{RS}")
         hash = hashlib.blake2b(password.encode())
         sample_decrypted = bytearray(a ^ b for a, b in zip(sample[-32:], hash.digest()))
         #check for magic number to verify the password
         if sample_decrypted == magic_number:
             #if we find the magic number again, return true
-            print(f"{C}[{M}-{C}] Password Verified.{RS}")
+            printslow(f"{C}[{M}-{C}] Password Verified.{RS}")
             return True
         else:
             #if we dont find the magic number again, exit
-            print(f"{C}[{R}!{C}] Password Verification Failed{RS}")
+            printslow(f"{C}[{R}!{C}] Password Verification Failed{RS}")
             exit()
     else:
         #if we didnt find the magic number the first time, return false
-        print(f"{C}[{M}-{C}] Unencrypted input detected.{RS}")
+        printslow(f"{C}[{M}-{C}] Unencrypted input detected.{RS}")
         return False
 
 
@@ -107,7 +110,7 @@ def write_output_file(file_name, file_data):
         with open(file_name, 'wb') as ofile:
             ofile.write(file_data)
     except Exception as e:
-        print(f"{C}{R}!{C}] An unexpected error has occured: {R}{e}{RS}")
+        printslow(f"{C}[{R}!{C}] An unexpected error has occured: {R}{e}{RS}")
 
 def generate_key(password, input_filesize):
     #record the time, set counter to 0
@@ -119,25 +122,25 @@ def generate_key(password, input_filesize):
     hash = hashlib.blake2b(password.encode())
     key = hash.digest()
     #use the last 32 bytes of the initial hash as the seed for the next hash, add that hash to the first hash, and repeat untill it's as big as in the input file
-    while len(key) <= (input_filesize + 64):
+    while len(key) <= (input_filesize):
         next_hash = hashlib.blake2b(key[-32:])
         key = key + next_hash.digest()
         count += 1
-        #every hundred iterations, update the progress bar and status messages
-        if ((count % 100) == 1):
+        #every thousand iterations, update the progress bar and status messages
+        if (((count % 1000) == 1) or (len(key) >= input_filesize)):
             progress_percent = ((len(key) / input_filesize) * 100)
             progress_blocks = round(progress_percent / 2)
             progress_bar = ("■" * progress_blocks) + (" " * (50 - progress_blocks))
             keytime_elapsed = (datetime.now() - key_start_time)
-            keytime_total = keytime_elapsed / (len(key) / input_filesize)
-            keytime_remaining = keytime_total - keytime_elapsed
-            bytes_per_second = round((count * 64) / (keytime_elapsed.seconds + .1))
             hashes_per_second = round(count / (keytime_elapsed.seconds + .1))
+            bytes_per_second = round((count * 64) / (keytime_elapsed.seconds + 1))
+            keytime_total = timedelta(seconds=(round(input_filesize / bytes_per_second))) 
+            keytime_remaining = keytime_total - keytime_elapsed
             print(f"\033[F{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}> {M}{round(progress_percent,1)}{C}% {convert_bytes(len(key))}     \n{C}[{M}-{C}] ({M}{m_and_s(keytime_elapsed)} {C}elapsed / {M}{m_and_s(keytime_total)}{C} total / {M}{m_and_s(keytime_remaining)} {C}remaining) : {M}{convert_bytes(bytes_per_second)}{C}/s : {M}{hashes_per_second} H{C}/S   {RS}" ,end="")
     #calculate the key generation time    
-    total_keytime = datetime.now() - key_start_time    
+    total_keytime = datetime.now() - key_start_time  
     #print a status message and show the cursor again
-    print(f"\n{C}[{M}-{C}] Key Generated.{RS}{CSHOW}")
+    printslow(f"\n{C}[{M}-{C}] Key Generated.{RS}{CSHOW}")
     #return the key
     return key[:input_filesize], total_keytime
 
@@ -166,9 +169,15 @@ def encrypt(input_bytes):
     cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes))
     #write the output to a file with the magic number pre-pended in cleartext
     cipher_bytes = magic_number + cipher_bytes
-    print(f"{C}[{M}-{C}] Writing output to file {len(cipher_bytes)}{RS}")
-    write_output_file(output_file, cipher_bytes)
-    return key_bytes, key_time, cipher_bytes    
+    return key_bytes, key_time, cipher_bytes
+
+def printslow(text):
+    delay = 0.001
+    for letter in text:
+        print(letter, end='', flush=True)
+        #print("\a", end='', flush=True)
+        time.sleep(delay)
+    print()
 
 def convert_bytes(size):
     #i stole this from stack overflow ngl
@@ -200,26 +209,32 @@ if __name__ == "__main__":
     else:
         output_file = input_file + ".eqx"   
     #this is where actually do the thing
-    print(f"{C}[{M}-{C}] Beginning file encryption/decryption{RS}")
-    print(f"{C}[{M}-{C}] Reading input file{RS}")
+    printslow(f"{C}[{M}-{C}] Beginning file encryption/decryption{RS}")
+    printslow(f"{C}[{M}-{C}] Reading input file{RS}")
     input_bytes = open_input_file(input_file)
-    print(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}")
+    printslow(f"{C}[{M}-{C}] Input file is {M}{convert_bytes(len(input_bytes))}{RS}")
     #determine if we're encrypting or decrypting and behave accordingly.
     if inspect(input_bytes) == True:
-        #If true, we are de-crypting
+        #If True, we are de-crypting
+        printslow(f"{C}[{M}-{C}] Encrypted input file detected. Initiating decryption.{RS}")
         key_bytes, key_time, cipher_bytes = decrypt(input_bytes)
+        printslow(f"{C}[{M}-{C}] Decryption completed.{RS}")
     else:
         #if False, we are encrypting
-        key_bytes, key_time,  cipher_bytes = encrypt(input_bytes)
+        printslow(f"{C}[{M}-{C}] Raw input file detected. Initiating encryption.{RS}")
+        key_bytes, key_time, cipher_bytes = encrypt(input_bytes)
+        printslow(f"{C}[{M}-{C}] Encryption completed.{RS}")
 
+    printslow(f"{C}[{M}-{C}] Writing output to file.{RS}")
+    write_output_file(output_file, cipher_bytes)
     #calculate total run time, see i told you we'd need it later
     total_run_time = datetime.now() - total_start_time
     
     #lets print some status messages right here then exit
-    print(f"{C}[{M}-{C}] Encryption/Decryption completed in: {M}{m_and_s(total_run_time)}{C}.{RS}")
-    print(f"{C}[{M}-{C}]  Input bytes: {C}{convert_bytes(len(input_bytes))} {M}-{C} Input file is: {M}{input_file}{RS}")
-    print(f"{C}[{M}-{C}]    Key bytes: {C}{convert_bytes(len(key_bytes))} {M}-{C} generated in: {M}{m_and_s(key_time)}{C}.{RS}")
-    print(f"{C}[{M}-{C}] Output bytes: {C}{convert_bytes(len(cipher_bytes))} {M}-{C} Output file is: {M}{output_file}{RS} ")
+    printslow(f"{C}[{M}-{C}] Encryption/Decryption completed in: {M}{m_and_s(total_run_time)}{C}.{RS}")
+    printslow(f"{C}[{M}-{C}]  Input bytes: {C}{convert_bytes(len(input_bytes))} {M}-{C} Input file is: {M}{input_file}{RS}")
+    printslow(f"{C}[{M}-{C}]    Key bytes: {C}{convert_bytes(len(key_bytes))} {M}-{C} generated in: {M}{m_and_s(key_time)}{C}.{RS}")
+    printslow(f"{C}[{M}-{C}] Output bytes: {C}{convert_bytes(len(cipher_bytes))} {M}-{C} Output file is: {M}{output_file}{RS} ")
     exit()
 
     
