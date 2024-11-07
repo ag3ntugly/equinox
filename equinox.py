@@ -9,9 +9,8 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import time as dtime
 import time
-import math
+#import math
 from math import trunc
-
 
 #record the time, for later...
 total_start_time = datetime.now()
@@ -22,12 +21,14 @@ magic_number = bytes.fromhex("84c399b360db6ef2757f40655ae66ad5fd8569f5e88d226d23
 #some color codes so i dont have to remember this nonsense
 R = "\033[91m"
 G = "\033[92m"
+LG = "\033[32m"
 Y = "\033[93m"
 B = "\033[94m"
 M =  "\033[95m"
 C = "\033[96m"
 W = "\033[97m"
 RS = "\033[0m"
+
 
 #cursor hiding tomfoolery
 CHIDE = "\033[?25l"
@@ -47,7 +48,7 @@ help_text = f'''
 {M}    \\{M}|_______|\\|___| {C}\\__\\{M}|_______|\\|__|\\|__| \\|__|\\|_______{C}/__/ {M}/{C}\\ __\\ 
                     {M}\\|__|                                  |__|/ \\|__| 
                                                                        
-      Equinox{C} a terrible file encryption utility by {G}ag3ntugly
+      Equinox{C} a terrible file encryption utility by {C}ag3ntugly
      {M}Password{C} can be any length, whatever you want, the {M}longer{C} the {M}better{C}.
    {M}Input file{C} can be any old {M}file{C} you have need to {M}obscure{C} from {M}eavesdroppers{C}.
   {M}Output file{C} is a new file with {M}.eqx{C} appended to the name, created in the current
@@ -60,6 +61,15 @@ will be created in the current directory, unless an output file name/path is spe
 This is {M}slow{C} and {M}iefficient{C} so it takes a long time for large files!
 It is probably not very secure so you should not trust it with state secrets.
 '''
+
+def clear_screen():
+    # Check the operating system and issue the appropriate command
+    if platform.system().lower() == "windows":
+        os.system("cls")  # Windows command to clear the screen
+    else:
+        os.system("clear")  # Linux or macOS command to clear the screen
+
+
 def m_and_s (time):
     #this is just a thing to turn a time object into minutes and seconds
     minutes_and_seconds = f"{str(trunc(time.seconds / 60))}:{str((trunc(time.seconds % 60))).zfill(2)}"
@@ -122,7 +132,7 @@ def generate_key(password, input_filesize):
     hash = hashlib.blake2b(password.encode())
     key = hash.digest()
     #use the last 32 bytes of the initial hash as the seed for the next hash, add that hash to the first hash, and repeat untill it's as big as in the input file
-    while len(key) <= (input_filesize):
+    while len(key) <= (input_filesize):        
         next_hash = hashlib.blake2b(key[-32:])
         key = key + next_hash.digest()
         count += 1
@@ -132,7 +142,7 @@ def generate_key(password, input_filesize):
             progress_blocks = round(progress_percent / 2)
             progress_bar = ("■" * progress_blocks) + (" " * (50 - progress_blocks))
             keytime_elapsed = (datetime.now() - key_start_time)
-            hashes_per_second = round(count / (keytime_elapsed.seconds + .1))
+            hashes_per_second = round(count / (keytime_elapsed.seconds + 1))
             bytes_per_second = round((count * 64) / (keytime_elapsed.seconds + 1))
             keytime_total = timedelta(seconds=(round(input_filesize / bytes_per_second))) 
             keytime_remaining = keytime_total - keytime_elapsed
@@ -209,6 +219,7 @@ if __name__ == "__main__":
     else:
         output_file = input_file + ".eqx"   
     #this is where actually do the thing
+    clear_screen()
     printslow(f"{C}[{M}-{C}] Beginning file encryption/decryption{RS}")
     printslow(f"{C}[{M}-{C}] Reading input file{RS}")
     input_bytes = open_input_file(input_file)
