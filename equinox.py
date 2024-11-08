@@ -26,7 +26,8 @@ M =  "\033[95m"
 C = "\033[96m"
 W = "\033[97m"
 RS = "\033[0m"
-#cursor hiding tomfoolery
+#terminal wizardy
+UP = "\033[F"
 CHIDE = "\033[?25l"
 CSHOW = "\033[?25h"
 #help messages
@@ -127,61 +128,67 @@ def generate_key(password, input_filesize):
         key = key + next_hash.digest()
         count += 1
         timesince = datetime.now() - lastupdate
-        #every hundredth iterations, update the progress bar and status messages
-        if (((timesince.total_seconds()) >= .1) or (len(key) >= input_filesize)):
-            progress_percent = ((len(key) / input_filesize) * 100)
-            progress_blocks = round(progress_percent / 10)
-            progress_bar = ("■" * progress_blocks) + (" " * (10 - progress_blocks))
+        #every .01 seconds, update the progress bar and status messages
+        if (((timesince.total_seconds()) >= .01) or (len(key) >= input_filesize)):
+            progress_percent = round(((len(key) / input_filesize) * 100))
+            progress_blocks = int(progress_percent / 3)
+            progress_bar = ("#" * progress_blocks) + (" " * (33 - progress_blocks))
             keytime_elapsed = (datetime.now() - key_start_time)
             hashes_per_second = round(count / (keytime_elapsed.seconds + 1))
-            bytes_per_second = round((count * 64) / (keytime_elapsed.seconds + 1))
+            bytes_per_second = (round((count * 64) / (keytime_elapsed.seconds + 1)))
             keytime_total = timedelta(seconds=(round(input_filesize / bytes_per_second))) 
-            keytime_remaining = keytime_total - keytime_elapsed
-            
+            keytime_remaining = keytime_total - keytime_elapsed            
             lastupdate = datetime.now()
-            print(f"\033[F{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}> {M}{round(progress_percent,1)}{C}% {M}{convert_bytes(len(key))} ({M}{m_and_s(keytime_elapsed)}{C}E | {M}{m_and_s(keytime_total)}{C}T | {M}{m_and_s(keytime_remaining)}{C}R) ({M}{convert_bytes(bytes_per_second)}{C}/s | {M}{hashes_per_second}{C}H/s)         {RS}")
+            size = convert_bytes(len(key))
+            print(f"{UP}{UP}{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}> {M}{" " * (4 - len(str(progress_percent)))}{progress_percent}{C}%{M}{" " * (14 - (len(size)))}{size}")
+            print(f"{C}[{M}-{C}] {M}{m_and_s(keytime_elapsed)}{C} elapsed | {M}{m_and_s(keytime_total)}{C} total | {M}{m_and_s(keytime_remaining)}{C} remaining | {M}{" " * (13 - len(str(convert_bytes(bytes_per_second))))} {str(convert_bytes(bytes_per_second))}{C}/s |{" " * (5 - len(str(hashes_per_second)))}{M}{hashes_per_second}{C}H/s         {RS}")
+        
     #calculate the key generation time    
     total_keytime = datetime.now() - key_start_time  
-    #print a status message and show the cursor again
-    message(f"Key Generated.{CSHOW}")
+    #unhide the cursor/print a newline, then a status message
+    print(CSHOW + UP)
+    message(f"Key Generated")
     #return the key
     return key[:input_filesize], total_keytime
 
 def decrypt(input_bytes):
     #Generate the full key
     key_bytes, key_time = generate_key(password, len(input_bytes))
+    message(f"Decrypting file")
+    start = datetime.now()
     #Trim off the first magic number and trim the key to match
     input_bytes = input_bytes[32:]
     key_bytes = key_bytes[:len(input_bytes)]
-    #bitwise XOR that thang
+    #XOR that thang
     cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes))
+    finish = datetime.now() - start
+    message(f"Decryption completed in {finish.total_seconds()} seconds")
     #Trim off the 2nd magic number
     cipher_bytes = cipher_bytes[32:]
-    #Write the output to file
-    #write_output_file(output_file, cipher_bytes)
     return key_bytes, key_time, cipher_bytes
 
 def encrypt(input_bytes):
     #Generate the full key, 32 bytes bigger than the input file to account for the magic number
     key_bytes, key_time = generate_key(password, (len(input_bytes) + 32))
+    message(f"Encrypting file")
+    start = datetime.now()
     #add the magic number on the front
     input_bytes = magic_number + input_bytes
     #Trim the key to match in the input
     key_bytes = key_bytes[:len(input_bytes)]
-    #bitwise XOR that thang
+    #XOR that thang
     cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes))
-    #write the output to a file with the magic number pre-pended in cleartext
+    finish = datetime.now() - start
+    message(f"Encryption completed in {finish.total_seconds()} seconds")
+    #prepend the magic number
     cipher_bytes = magic_number + cipher_bytes
-    #write_output_file(output_file, cipher_bytes)
     return key_bytes, key_time, cipher_bytes
 
-def printslow(text):
-    delay = 0.002
-    for letter in text:
-        print(letter, end='', flush=True)
-        #print("\a", end='', flush=True)
-        time.sleep(delay)
-    print()
+def printslow(text,delay=0.002):
+        for letter in text:
+            print(letter, end='', flush=True)
+            time.sleep(delay)
+        print()
 
 def message(message):
     printslow(f"{C}[{M}-{C}] {message}{RS}")
@@ -217,6 +224,7 @@ if __name__ == "__main__":
     else: 
         output_file = input_file + ".eqx"       
     #this is where actually do the thing
+    print(help_text[:1000])
     try:
         #read in the input file
         input_bytes = open_input_file(input_file)
@@ -224,14 +232,14 @@ if __name__ == "__main__":
         #determine if we're encrypting or decrypting and behave accordingly.
         if inspect(input_bytes) == True:
             #If True, we are de-crypting
-            message(f"Encrypted input file detected - Initiating decryption{RS}")
+            message("Encrypted input file detected")
+            message("Initiating decryption")
             key_bytes, key_time, cipher_bytes = decrypt(input_bytes)
-            message(f"Decryption completed.{RS}")
         else:
             #if False, we are encrypting
-            message(f"Raw input file detected - Initiating encryption{RS}")
+            message("Plaintext input file detected")
+            message("Initiating encryption")
             key_bytes, key_time, cipher_bytes = encrypt(input_bytes)
-            message(f"Encryption completed.{RS}")
         message("Writing output to file")
         write_output_file(output_file, cipher_bytes)
         #calculate total run time, see i told you we'd need it later
