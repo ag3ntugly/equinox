@@ -1,37 +1,33 @@
 #!/usr/bin/env python3
 
 import hashlib
-import os
-import platform
 import sys
 import argparse
 from datetime import datetime
 from datetime import timedelta
-from datetime import time as dtime
 import time
-#import math
 from math import trunc
 
 total_start_time = datetime.now() #record the time, for later...
 #a randomly generated 32 byte number to be used as known plaintext for identification and verification
 magic_number = bytes.fromhex("84c399b360db6ef2757f40655ae66ad5fd8569f5e88d226d2307a7f38594217e")
-#some color codes so i dont have to remember this nonsense
-R = "\033[0;91m"
-G = "\033[0;32m"
-LG = "\033[0;92m"
-BLG = "\033[1;92m"
-Y = "\033[0;93m"
-B = "\033[0;94m"
-M =  "\033[0;95m"
-C = "\033[0;96m"
-W = "\033[0;97m"
-RS = "\033[0;0m"
-P = G
-A = BLG
+#some color codes so i dont have to type them every time
+R = "\033[0;31m"        #red
+G = "\033[0;32m"        #green
+LG = "\033[0;32m"       #light green
+BLG = "\033[1;32m"      #bold light green
+Y = "\033[0;33m"        #yellow
+B = "\033[0;34m"        #blue
+M =  "\033[0;35m"       #magenta
+C = "\033[0;36m"        #cyan
+W = "\033[0;37m"        #white
+RS = "\033[0;0m"        #reset/default
+P = G #this is the PRIMARY color, set it to whatever you feel like from the colors above
+A = BLG #this is the ACCENT color, set it to whatever you feel like from the colors above
 #terminal wizardy
-UP = "\033[F"
-CHIDE = "\033[?25l"
-CSHOW = "\033[?25h"
+UP = "\033[F"           #go up a line in the terminal
+CHIDE = "\033[?25l"     #hide the cursor
+CSHOW = "\033[?25h"     #show the cursor
 #help messages
 usage_text = f"{P}python equinox.py [-h/--help] -p/--password {A}PASSWORD{P} -i/--input {A}INPUT_FILE_PATH{P} [-o/--output {A}OUTPUT_FILE_PATH{P}]{RS}"
 help_text = f'''
@@ -78,7 +74,7 @@ def open_input_file(input_file): #open the original input_file for reading as by
 
 def inspect(input_bytes):    
     sample = input_bytes[:64] #read the first 64 bytes 
-    if sample[:32] == magic_number: #check for the magic number in the first 32
+    if sample[:32] == magic_number: #check for the magic number in the first 32 bytes
         #if we find it, check the password by decrypting the last 32 bytes
         message("Encrypted input detected - Checking Password")
         hash = hashlib.blake2b(password.encode()) #generate a hash from the password
@@ -112,14 +108,14 @@ def generate_key(password, input_filesize):
         key = key + next_hash.digest() #type fuckery/concatenation
         count += 1 #increment the count
         timesince = datetime.now() - lastupdate #calculate the time since the last status update
-        #every .01 seconds, update the progress bar and status messages
+        #if it has been longer than .01 seconds since the last time, update the progress bar and status messages
         if (((timesince.total_seconds()) >= .01) or (len(key) >= input_filesize)): 
             progress_percent = round(((len(key) / input_filesize) * 100)) #how far along are we?
             progress_pad = (" " * (3 - len(str(progress_percent)))) #pad the percentage
             progress_blocks = int(progress_percent / 3) #how many blocks in the progress bar?
             progress_bar = ("░" * progress_blocks) + (" " * (33 - progress_blocks)) #said number of blocks and some padding
             keytime_elapsed = (datetime.now() - key_start_time) #time so far for the key generation operation
-            hashes_per_second = round(count / (keytime_elapsed.seconds + 1)) #hashes per second, +1 in case the time is less than 1
+            hashes_per_second = round(count / (keytime_elapsed.total_seconds())) #hashes per second, +1 in case the time is less than 1
             hashes_pad = (" " * (6 - len(str(hashes_per_second)))) #pad that baby
             bytes_per_second = (round((count * 64) / (keytime_elapsed.seconds + 1))) #bytes of key per second, +1 in case time is less than 1
             bytes_pad = (" " * (16 - len(str(convert_bytes(bytes_per_second))))) #PAD IT!
@@ -130,12 +126,12 @@ def generate_key(password, input_filesize):
             size_pad = (" " * (16 - (len(str(size))))) #PPPPPAAAAAAAADDDDDDDDDD!!!!!!
             #print the progress bar and stats we just calculated
             print( 
-            f"{UP}{UP}{P}[{A}-{P}] Generating Key: {P}<{A}{progress_bar}{P}> "
+            f"{UP}{UP}{P}[{A}={P}] Generating Key: {P}<{A}{progress_bar}{P}> "
             f"{A}{progress_pad}{progress_percent}{P}% "
             f"{A}{size_pad}{size} "
             )
             print(
-            f"{P}[{A}-{P}] {A}{m_and_s(keytime_elapsed)}{P} elapsed | "
+            f"{P}[{A}={P}] {A}{m_and_s(keytime_elapsed)}{P} elapsed | "
             f"{A}{m_and_s(keytime_total)}{P} total | "
             f"{A}{m_and_s(keytime_remaining)}{P} remaining |"
             f"{A}{bytes_pad}{convert_bytes(bytes_per_second)}{P}/s |"
@@ -179,7 +175,7 @@ def printslow(text,delay=0.002):
         print()
 
 def message(message):
-    printslow(f"{P}[{A}-{P}] {message}{RS}")
+    printslow(f"{P}[{A}={P}] {message}{RS}")
 
 def error(error):
     printslow(f"{P}[{R}!{P}] {error}{RS}")
