@@ -17,42 +17,45 @@ total_start_time = datetime.now()
 #a randomly generated 32 byte number to be used as known plaintext for identification and verification
 magic_number = bytes.fromhex("84c399b360db6ef2757f40655ae66ad5fd8569f5e88d226d2307a7f38594217e")
 #some color codes so i dont have to remember this nonsense
-R = "\033[91m"
-G = "\033[92m"
-LG = "\033[32m"
-Y = "\033[93m"
-B = "\033[94m"
-M =  "\033[95m"
-C = "\033[96m"
-W = "\033[97m"
-RS = "\033[0m"
+R = "\033[0;91m"
+G = "\033[0;32m"
+LG = "\033[0;92m"
+BLG = "\033[1;92m"
+Y = "\033[0;93m"
+B = "\033[0;94m"
+M =  "\033[0;95m"
+C = "\033[0;96m"
+W = "\033[0;97m"
+RS = "\033[0;0m"
+P = G
+A = BLG
 #terminal wizardy
 UP = "\033[F"
 CHIDE = "\033[?25l"
 CSHOW = "\033[?25h"
 #help messages
-usage_text = f"{C}python equinox.py [-h/--help] -p/--password {M}PASSWORD{C} -i/--input {M}INPUT_FILE_PATH{C} [-o/--output {M}OUTPUT_FILE_PATH{C}]{RS}"
+usage_text = f"{P}python equinox.py [-h/--help] -p/--password {A}PASSWORD{P} -i/--input {A}INPUT_FILE_PATH{P} [-o/--output {A}OUTPUT_FILE_PATH{P}]{RS}"
 help_text = f'''
-{C} _______   ________  ___  ___  ___  ________   ________     ___    ___ 
-{M}|{C}\\  ___ \\ {M}|{C}\\   __  \\{M}|{C}\\  \\{M}|{C}\\  \\{M}|{C}\\  \\{M}|{C}\\   ___  \\{M}|{C}\\   __  \\   {M}|{C}\\  \\  /  /{M}|{C}
-{M}\\ {C}\\   __/|{M}\\{C} \\  \\{M}|{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}|{C}\\  \\  {M}\\{C} \\  \\/  / {M}/
-{M} \\ {C}\\  \\_|/_{M}\\{C} \\  \\{M}\\{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}\\{C}\\  \\  {M}\\{C} \\    / {M}/ 
-{M}  \\ {C}\\  \\_|\\ {M}\\{C} \\  \\{M}\\{C}\\  \\ \\  \\{M}\\{C}\\  \\ \\  \\ \\  \\{M}\\{C} \\  \\ \\  \\{M}\\{C}\\  \\  /     \\{M}/  
-{M}   \\ {C}\\_______{M}\\{C} \\_____  \\ \\_______\\ \\__\\ \\__\\\\ \\__\\ \\_______\\/  /\\   \\  
-{M}    \\{M}|_______|\\|___| {C}\\__\\{M}|_______|\\|__|\\|__| \\|__|\\|_______{C}/__/ {M}/{C}\\ __\\ 
-                    {M}\\|__|                                  |__|/ \\|__| 
+{P} _______   ________  ___  ___  ___  ________   ________     ___    ___ 
+{A}|{P}\\  ___ \\ {A}|{P}\\   __  \\{A}|{P}\\  \\{A}|{P}\\  \\{A}|{P}\\  \\{A}|{P}\\   ___  \\{A}|{P}\\   __  \\   {A}|{P}\\  \\  /  /{A}|{P}
+{A}\\ {P}\\   __/|{A}\\{P} \\  \\{A}|{P}\\  \\ \\  \\{A}\\{P}\\  \\ \\  \\ \\  \\{A}\\{P} \\  \\ \\  \\{A}|{P}\\  \\  {A}\\{P} \\  \\/  / {A}/
+{A} \\ {P}\\  \\_|/_{A}\\{P} \\  \\{A}\\{P}\\  \\ \\  \\{A}\\{P}\\  \\ \\  \\ \\  \\{A}\\{P} \\  \\ \\  \\{A}\\{P}\\  \\  {A}\\{P} \\    / {A}/ 
+{A}  \\ {P}\\  \\_|\\ {A}\\{P} \\  \\{A}\\{P}\\  \\ \\  \\{A}\\{P}\\  \\ \\  \\ \\  \\{A}\\{P} \\  \\ \\  \\{A}\\{P}\\  \\  /     \\{A}/  
+{A}   \\ {P}\\_______{A}\\{P} \\_____  \\ \\_______\\ \\__\\ \\__\\\\ \\__\\ \\_______\\/  /\\   \\  
+{A}    \\{A}|_______|\\|___| {P}\\__\\{A}|_______|\\|__|\\|__| \\|__|\\|_______{P}/__/ {A}/{P}\\ __\\ 
+                    {A}\\|__|{P}                                 {A}|__|/ \\|__| 
                                                                        
-      Equinox{C} a terrible file encryption utility by {C}ag3ntugly
-     {M}Password{C} can be any length, whatever you want, the {M}longer{C} the {M}better{C}.
-   {M}Input file{C} can be any old {M}file{C} you have need to {M}obscure{C} from {M}eavesdroppers{C}.
-  {M}Output file{C} is a new file with {M}.eqx{C} appended to the name, created in the current
+      Equinox{P} a terrible file encryption utility by {P}ag3ntugly
+     {A}Password{P} can be any length, whatever you want, the {A}longer{P} the {A}better{P}.
+   {A}Input file{P} can be any old {A}file{P} you have need to {A}obscure{P} from {A}eavesdroppers{P}.
+  {A}Output file{P} is a new file with {A}.eqx{P} appended to the name, created in the current
               directory unless an output file name/path is specified.
 
-The process for {M}decrypting{C} the file is identical to {M}encrypting{C},
-just specify the {M}.eqx{C} file as the input, and a new file without the {M}.eqx{C} extension
+The process for {A}decrypting{P} the file is identical to {A}encrypting{P},
+just specify the {A}.eqx{P} file as the input, and a new file without the {A}.eqx{P} extension
 will be created in the current directory, unless an output file name/path is specified
 
-This is {M}slow{C} and {M}iefficient{C} so it takes a long time for large files!
+This is {A}slow{P} and {A}iefficient{P} so it takes a long time for large files!
 It is probably not very secure so you should not trust it with state secrets.
 '''
 def clear_screen():
@@ -140,8 +143,8 @@ def generate_key(password, input_filesize):
             keytime_remaining = keytime_total - keytime_elapsed            
             lastupdate = datetime.now()
             size = convert_bytes(len(key))
-            print(f"{UP}{UP}{C}[{M}-{C}] Generating Key: {C}<{M}{progress_bar}{C}> {M}{" " * (4 - len(str(progress_percent)))}{progress_percent}{C}%{M}{" " * (14 - (len(size)))}{size}")
-            print(f"{C}[{M}-{C}] {M}{m_and_s(keytime_elapsed)}{C} elapsed | {M}{m_and_s(keytime_total)}{C} total | {M}{m_and_s(keytime_remaining)}{C} remaining | {M}{" " * (13 - len(str(convert_bytes(bytes_per_second))))} {str(convert_bytes(bytes_per_second))}{C}/s |{" " * (5 - len(str(hashes_per_second)))}{M}{hashes_per_second}{C}H/s         {RS}")
+            print(f"{UP}{UP}{P}[{A}-{P}] Generating Key: {P}<{A}{progress_bar}{P}> {A}{" " * (4 - len(str(progress_percent)))}{progress_percent}{P}%{A}{" " * (14 - (len(size)))}{size}")
+            print(f"{P}[{A}-{P}] {A}{m_and_s(keytime_elapsed)}{P} elapsed | {A}{m_and_s(keytime_total)}{P} total | {A}{m_and_s(keytime_remaining)}{P} remaining | {A}{" " * (13 - len(str(convert_bytes(bytes_per_second))))} {str(convert_bytes(bytes_per_second))}{P}/s |{" " * (5 - len(str(hashes_per_second)))}{A}{hashes_per_second}{P}H/s         {RS}")
         
     #calculate the key generation time    
     total_keytime = datetime.now() - key_start_time  
@@ -191,15 +194,15 @@ def printslow(text,delay=0.002):
         print()
 
 def message(message):
-    printslow(f"{C}[{M}-{C}] {message}{RS}")
+    printslow(f"{P}[{A}-{P}] {message}{RS}")
 
 def error(error):
-    printslow(f"{C}[{R}!{C}] {error}{RS}")
+    printslow(f"{P}[{R}!{P}] {error}{RS}")
     exit()
 
 def convert_bytes(size):
     #i stole this from stack overflow ngl
-    for x in [f'{C}bytes', f'{C}KB', f'{C}MB', f'{C}GB', f'{C}TB']:
+    for x in [f'{P}bytes', f'{P}KB', f'{P}MB', f'{P}GB', f'{P}TB']:
         if size < 1024.0:
             return "%3.1f %s" % (size, x)
         size /= 1024.0
@@ -224,11 +227,11 @@ if __name__ == "__main__":
     else: 
         output_file = input_file + ".eqx"       
     #this is where actually do the thing
-    print(help_text[:1000])
+    print(help_text[:1256])
     try:
         #read in the input file
         input_bytes = open_input_file(input_file)
-        message(f"Input file is {M}{convert_bytes(len(input_bytes))}")
+        message(f"Input file is {A}{convert_bytes(len(input_bytes))}")
         #determine if we're encrypting or decrypting and behave accordingly.
         if inspect(input_bytes) == True:
             #If True, we are de-crypting
@@ -245,10 +248,10 @@ if __name__ == "__main__":
         #calculate total run time, see i told you we'd need it later
         total_run_time = datetime.now() - total_start_time        
         #lets print some status messages right here then exit
-        message(f"Encryption/Decryption completed in: {M}{m_and_s(total_run_time)}{C}.{RS}")
-        message(f" Input bytes: {C}{convert_bytes(len(input_bytes))} {M}-{C} Input file is: {M}{input_file}{RS}")
-        message(f"   Key bytes: {C}{convert_bytes(len(key_bytes))} {M}-{C} generated in: {M}{m_and_s(key_time)}{C}.{RS}")
-        message(f"Output bytes: {C}{convert_bytes(len(cipher_bytes))} {M}-{C} Output file is: {M}{output_file}{RS} ")
+        message(f"Encryption/Decryption completed in: {A}{m_and_s(total_run_time)}{P}.{RS}")
+        message(f" Input bytes: {P}{convert_bytes(len(input_bytes))} {A}-{P} Input file is: {A}{input_file}{RS}")
+        message(f"   Key bytes: {P}{convert_bytes(len(key_bytes))} {A}-{P} generated in: {A}{m_and_s(key_time)}{P}.{RS}")
+        message(f"Output bytes: {P}{convert_bytes(len(cipher_bytes))} {A}-{P} Output file is: {A}{output_file}{RS} ")
         exit()
     except KeyboardInterrupt:
         error("Operation terminated")
