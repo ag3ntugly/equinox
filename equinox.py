@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import shutil
 import hashlib
 import sys
 import argparse
@@ -22,12 +23,14 @@ M =  "\033[0;35m"       #magenta
 C = "\033[0;36m"        #cyan
 W = "\033[0;37m"        #white
 RS = "\033[0;0m"        #reset/default
-P = G #this is the PRIMARY color, set it to whatever you feel like from the colors above
+P = W #this is the PRIMARY color, set it to whatever you feel like from the colors above
 A = BLG #this is the ACCENT color, set it to whatever you feel like from the colors above
 #terminal wizardy
 UP = "\033[F"           #go up a line in the terminal
 CHIDE = "\033[?25l"     #hide the cursor
 CSHOW = "\033[?25h"     #show the cursor
+#character for the progress bar
+progress_character = "Ξ"
 #help messages
 usage_text = f"{P}python equinox.py [-h/--help] -p/--password {A}PASSWORD{P} -i/--input {A}INPUT_FILE_PATH{P} [-o/--output {A}OUTPUT_FILE_PATH{P}]{RS}"
 help_text = f'''
@@ -38,9 +41,9 @@ help_text = f'''
 {A}  \\ {P}\\  \\_|\\ {A}\\{P} \\  \\{A}\\{P}\\  \\ \\  \\{A}\\{P}\\  \\ \\  \\ \\  \\{A}\\{P} \\  \\ \\  \\{A}\\{P}\\  \\  /     \\{A}/  
 {A}   \\ {P}\\_______{A}\\{P} \\_____  \\ \\_______\\ \\__\\ \\__\\\\ \\__\\ \\_______\\/  /\\   \\  
 {A}    \\{A}|_______|\\|___| {P}\\__\\{A}|_______|\\|__|\\|__| \\|__|\\|_______{P}/__/ {A}/{P}\\ __\\ 
-                    {A}\\|__|{P}                                 {A}|__|/ \\|__| 
+                    {A}\\|__|{P}                                  {A}|__|/ \\|__| 
                                                                        
-      Equinox{P} a terrible file encryption utility by {P}ag3ntugly
+      Equinox{P} a terrible file encryption utility by {A}ag3ntugly
      {A}Password{P} can be any length, whatever you want, the {A}longer{P} the {A}better{P}.
    {A}Input file{P} can be any old {A}file{P} you have need to {A}obscure{P} from {A}eavesdroppers{P}.
   {A}Output file{P} is a new file with {A}.eqx{P} appended to the name, created in the current
@@ -53,6 +56,35 @@ will be created in the current directory, unless an output file name/path is spe
 This is {A}slow{P} and {A}iefficient{P} so it takes a long time for large files!
 It is probably not very secure so you should not trust it with state secrets.
 '''
+def printslow(text,delay=0.003):
+        for letter in text:
+            print(letter, end='', flush=True)
+            time.sleep(delay)
+        print()
+
+def message(message):
+    printslow(f"{P}[{A}◊{P}] {message}{RS}")
+
+def error(error):
+    printslow(f"{P}[{R}!{P}] {error}{RS}")
+    exit()
+
+def convert_bytes(size): #i stole this from stack overflow ngl
+    for x in [f'{P}bytes', f'{P}KB', f'{P}MB', f'{P}GB', f'{P}TB']:
+        if size < 1024.0:
+            return "%s%3.1f%s" % (A, size, x)
+        size /= 1024.0
+    return size
+
+def convert_hashes(size): #i stole this from stack overflow ngl
+    for x in [f'{P}H', f'{P}KH', f'{P}MH', f'{P}GH', f'{P}TH']:
+        if (size < 1000.0) & (x == f'{P}H'):
+            return "%s%3.0f%s" % (A, size, x)
+        elif size < 1000.0:
+            return "%s%3.1f%s" % (A, size, x)
+        size /= 1000.0
+    return size
+
 def m_and_s (time):  #this is just a thing to turn a time object into minutes and seconds   
     minutes_and_seconds = f"{str(trunc(time.seconds / 60))}:{str((trunc(time.seconds % 60))).zfill(2)}"
     return minutes_and_seconds
@@ -76,17 +108,19 @@ def inspect(input_bytes):
     sample = input_bytes[:64] #read the first 64 bytes 
     if sample[:32] == magic_number: #check for the magic number in the first 32 bytes
         #if we find it, check the password by decrypting the last 32 bytes
-        message("Encrypted input detected - Checking Password")
+        message("Encrypted input detected")
+        message("Checking Password")
         hash = hashlib.blake2b(password.encode()) #generate a hash from the password
         sample_decrypted = bytearray(a ^ b for a, b in zip(sample[-32:], hash.digest())) #XOR that thang
         #check for magic number to verify the password
         if sample_decrypted == magic_number: #if we find the magic number again, return true            
-            message("Password Verified{RS}")
+            message("Password Verified")
             return True
         else: #if we dont find the magic number again, exit            
             error("Password Verification Failed")
             exit()
-    else: #if we didnt find the magic number the first time, return false        
+    else: #if we didnt find the magic number the first time, return false
+        message("Plaintext input detected")       
         return False
 
 def write_output_file(file_name, file_data): #open output file for writing as bytes and write said bytes   
@@ -104,41 +138,45 @@ def generate_key(password, input_filesize):
     hash = hashlib.blake2b(password.encode()) #create a blake2b hash of the input string
     key = hash.digest() #convert the hash to a type we can concatenate    
     while len(key) <= (input_filesize):  #chain hashes untill the key is big enough for the input
-        next_hash = hashlib.blake2b(key[-32:]) #use the last 32 of the key as the seed for the next hash
+        next_hash = hashlib.blake2b(key[-32:] + password.encode()) #use the last 32 bytes of the key + the password as the seed for the next hash
         key = key + next_hash.digest() #type fuckery/concatenation
         count += 1 #increment the count
         timesince = datetime.now() - lastupdate #calculate the time since the last status update
         #if it has been longer than .01 seconds since the last time, update the progress bar and status messages
-        if (((timesince.total_seconds()) >= .01) or (len(key) >= input_filesize)): 
+        if (((timesince.total_seconds()) >= .01) or (len(key) >= input_filesize)):
             progress_percent = round(((len(key) / input_filesize) * 100)) #how far along are we?
             progress_pad = (" " * (3 - len(str(progress_percent)))) #pad the percentage
             progress_blocks = int(progress_percent / 3) #how many blocks in the progress bar?
-            progress_bar = ("░" * progress_blocks) + (" " * (33 - progress_blocks)) #said number of blocks and some padding
+            progress_bar = (progress_character * progress_blocks) + ">" + (" " * (32 - progress_blocks)) #said number of blocks and some padding
             keytime_elapsed = (datetime.now() - key_start_time) #time so far for the key generation operation
+            elapsed_pad = ("0" * (5 - len(m_and_s(keytime_elapsed))))
             hashes_per_second = round(count / (keytime_elapsed.total_seconds())) #hashes per second, +1 in case the time is less than 1
-            hashes_pad = (" " * (6 - len(str(hashes_per_second)))) #pad that baby
+            hashes_pad = (" " * (21 - len(convert_hashes(hashes_per_second)))) #pad that baby
             bytes_per_second = (round((count * 64) / (keytime_elapsed.seconds + 1))) #bytes of key per second, +1 in case time is less than 1
-            bytes_pad = (" " * (16 - len(str(convert_bytes(bytes_per_second))))) #PAD IT!
-            keytime_total = timedelta(seconds=(round(input_filesize / bytes_per_second))) #estimate total time for operation
+            bytes_pad = (" " * (22 - len(str(convert_bytes(bytes_per_second))))) #PAD IT!
+            magic_multiplier = round(2.001 - (len(key) / input_filesize),2) #a multiplier we're using to try and make the time estimates less shit
+            keytime_total = timedelta(seconds=round((input_filesize / bytes_per_second))) * magic_multiplier #estimate total time for operation
+            total_pad = ("0" * (5 - len(m_and_s(keytime_total))))
             keytime_remaining = keytime_total - keytime_elapsed #calculate remaining time based on total estimate
+            remaining_pad = "0" * (5 - len(m_and_s(keytime_remaining)))
             lastupdate = datetime.now() #set this to now so that .01 seconds from now it'll know its time to do it again
             size = convert_bytes(len(key)) #get the size of the key
-            size_pad = (" " * (16 - (len(str(size))))) #PPPPPAAAAAAAADDDDDDDDDD!!!!!!
+            size_pad = (" " * (22 - (len(str(size))))) #PPPPPAAAAAAAADDDDDDDDDD!!!!!!
             #print the progress bar and stats we just calculated
             print( 
-            f"{UP}{UP}{P}[{A}={P}] Generating Key: {P}<{A}{progress_bar}{P}> "
-            f"{A}{progress_pad}{progress_percent}{P}% "
-            f"{A}{size_pad}{size} "
+            f"{UP}{P}[{A}◊{P}] Generating Key: {P}═╣{A}{progress_bar}{P}╠═"
+            f"{A}{progress_pad}{progress_percent}{P}% |"
+            f"{A}{size_pad}{size}"
             )
             print(
-            f"{P}[{A}={P}] {A}{m_and_s(keytime_elapsed)}{P} elapsed | "
-            f"{A}{m_and_s(keytime_total)}{P} total | "
-            f"{A}{m_and_s(keytime_remaining)}{P} remaining |"
+            f"{P}[{A}◊{P}] {A}{elapsed_pad}{m_and_s(keytime_elapsed)}{P} elapsed | "
+            f"{A}{total_pad}{m_and_s(keytime_total)}{P} total | "
+            f"{A}{remaining_pad}{m_and_s(keytime_remaining)}{P} remaining |"
             f"{A}{bytes_pad}{convert_bytes(bytes_per_second)}{P}/s |"
-            f"{hashes_pad}{A}{hashes_per_second}{P}H/s         {RS}"
+            f"{hashes_pad}{A}{convert_hashes(hashes_per_second)}{P}/s{RS}", end=""
             )        
     total_keytime = datetime.now() - key_start_time #calculate the key generation time  
-    print(CSHOW + UP) #unhide the cursor and go up a line
+    print(CSHOW) #unhide the cursor and go up a line
     message(f"Key Generated") #then print this message
     return key[:input_filesize], total_keytime
 
@@ -151,7 +189,7 @@ def decrypt(input_bytes):
     key_bytes = key_bytes[:len(input_bytes)]
     cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes)) #XOR that thang
     finish = datetime.now() - start #calulate the time it took to finish
-    message(f"Decryption completed in {finish.total_seconds()} seconds")
+    message(f"Decryption completed in {round(finish.total_seconds(),3)} seconds")
     cipher_bytes = cipher_bytes[32:] #Trim off the 2nd magic number
     return key_bytes, key_time, cipher_bytes
 
@@ -164,33 +202,13 @@ def encrypt(input_bytes):
     key_bytes = key_bytes[:len(input_bytes)] #Trim the key to match in the input   
     cipher_bytes = bytearray(a ^ b for a, b in zip(input_bytes, key_bytes)) #XOR that thang
     finish = datetime.now() - start #calculate time it took to finish
-    message(f"Encryption completed in {finish.total_seconds()} seconds")
+    message(f"Encryption completed in {round(finish.total_seconds(),3)} seconds")
     cipher_bytes = magic_number + cipher_bytes #prepend the magic number
     return key_bytes, key_time, cipher_bytes
 
-def printslow(text,delay=0.002):
-        for letter in text:
-            print(letter, end='', flush=True)
-            time.sleep(delay)
-        print()
-
-def message(message):
-    printslow(f"{P}[{A}={P}] {message}{RS}")
-
-def error(error):
-    printslow(f"{P}[{R}!{P}] {error}{RS}")
-    exit()
-
-def convert_bytes(size): #i stole this from stack overflow ngl
-    for x in [f'{P}bytes', f'{P}KB', f'{P}MB', f'{P}GB', f'{P}TB']:
-        if size < 1024.0:
-            return "%3.1f %s" % (size, x)
-        size /= 1024.0
-    return size
-
 if __name__ == "__main__":
     try:
-        #parse the arguments andset variables from args and stuff
+        #parse the arguments and set variables from args and stuff
         parser = argparse.ArgumentParser(usage=usage_text,description=help_text,epilog=f"{RS}",formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument("-p", "--password", type=str, required=True)
         parser.add_argument("-i", "--input", type=str, required=True)
@@ -205,16 +223,14 @@ if __name__ == "__main__":
         else: #otherwise assume we are encrypting and set it to the input file name with .eqx appended to it
             output_file = input_file + ".eqx"       
         #this is where actually do the thing
-        print(help_text[:1256]) #print only the ascii and first line from the help text    
+        print(help_text[:1156]) #print only the ascii and first line from the help text    
         input_bytes = open_input_file(input_file) #read in the input file
-        message(f"Input file is {A}{convert_bytes(len(input_bytes))}")
+        message(f"Input file is {convert_bytes(len(input_bytes))}")
         #determine if we're encrypting or decrypting and behave accordingly.
         if inspect(input_bytes) == True: #If True, we are decrypting
-            message("Encrypted input file detected")
             message("Initiating decryption")
             key_bytes, key_time, cipher_bytes = decrypt(input_bytes) #call the decrypt function
         else: #if False, we are encrypting
-            message("Plaintext input file detected")
             message("Initiating encryption")
             key_bytes, key_time, cipher_bytes = encrypt(input_bytes) #call the encrypt function
         message("Writing output to file") 
@@ -227,4 +243,5 @@ if __name__ == "__main__":
         message(f"Output bytes: {P}{convert_bytes(len(cipher_bytes))} {A}-{P} Output file is: {A}{output_file}{RS} ")
         exit()
     except KeyboardInterrupt: #shut this baby down nicely upon CTRL-C because lord have mercy does it puke a bunch of nonsense if you dont
+        print()
         error("Operation terminated")
